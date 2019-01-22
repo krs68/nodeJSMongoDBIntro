@@ -25,6 +25,15 @@ app.post('/todos', (req, resp) => {
     });
 });
 
+app.get('/todos', (req, resp) => {
+    Todo.find().then((todo) => {
+        resp.send({todo});
+    }, (e) => {
+        resp.status(400).send(e);
+    });
+});
+
+
 app.listen(3000, () => {
     console.log('Started Listner on port 3000...');
 });
