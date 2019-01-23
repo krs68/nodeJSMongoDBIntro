@@ -57,7 +57,7 @@ app.get('/todos/:id', (req, resp) => {
 
 
 app.listen(port, () => {
-    console.log(`Started Listner on port ${port}...');
+    console.log(`Started Listner on port ${port}...`);
 });
 
 
