@@ -1,19 +1,18 @@
 const expect = require('expect');
 const request = require('supertest');
-
+const {ObjectID} = require('mongodb');
 const { app } = require('./../server');
 const { Todo } = require('./../models/todo');
 
 const todos = [
-  { text: "First test toso" },
-  { text: "Second test toso" },
-  { text: "Third test toso" },
-  { text: "Fourth test toso" },
-  { text: "Fifth test toso" },
-  { text: "Sixth test toso" },
-  { text: "Seventh test toso" }
+  { _id: new ObjectID(), text: "First test todo" },
+  { _id: new ObjectID(), text: "Second test todo" },
+  { _id: new ObjectID(), text: "Third test todo" },
+  { _id: new ObjectID(), text: "Fourth test todo" },
+  { _id: new ObjectID(), text: "Fifth test todo" },
+  { _id: new ObjectID(), text: "Sixth test todo" },
+  { _id: new ObjectID(), text: "Seventh test todo" }
 ];
-
 
 beforeEach((done) => {
   Todo.remove({}).then(() => {
@@ -74,5 +73,69 @@ describe('GET /todos', () => {
         expect(resp.body.todo.length).toBe(7);
       })
       .end(done);
+  });
+});
+
+
+describe('GET /todos/with a valid id', () => {
+  it('should return a valid row', (done) => {
+    var id = todos[0]._id.toHexString();
+    request(app)
+      .get(`/todos/${id}`)
+      .expect(200)
+      .expect((res) => {
+        // expect(res.body.text).toBe(text);
+        console.log('Return Message:', res.body.todos[0].text);
+        var returnText = res.body.todos[0].text;
+        Todo.findById({ _id: id }).then((todo) => {
+          if (!todo) {
+            return console.log('ERROR 3: Invalid ID');
+          }
+          console.log('Todo By Id:', todo);
+          expect(res.body.todos[0].text).toBe(todo.text);
+        }).catch((e) => { console.log('Invalid ID:', id); done();});
+      })
+      .end((err, res) => {
+        if (err) {
+          return done(err);
+        }
+        console.log('Make sure this comes till here...');
+        done();
+      });
+  });
+});
+
+
+
+
+describe('GET /todos/with a valid id, but not found in database', () => {
+  it('should return 404 because there is no data for this id', (done) => {
+    var id = new ObjectID().toHexString();
+    request(app)
+      .get(`/todos/${id}`)
+      .expect(404)
+      .end((err, res) => {
+        if (err) {
+          return done(err);
+        }
+        done();
+      });
+  });
+});
+
+
+
+describe('GET /todos/1234567890', () => {
+  it('should return 404 because there is no data for this id', (done) => {
+    var id = '1234567890';
+    request(app)
+      .get(`/todos/${id}`)
+      .expect(404)
+      .end((err, res) => {
+        if (err) {
+          return done(err);
+        }
+        done();
+      });
   });
 });
