@@ -1,6 +1,6 @@
 const expect = require('expect');
 const request = require('supertest');
-const {ObjectID} = require('mongodb');
+const { ObjectID } = require('mongodb');
 const { app } = require('./../server');
 const { Todo } = require('./../models/todo');
 
@@ -93,7 +93,7 @@ describe('GET /todos/with a valid id', () => {
           }
           console.log('Todo By Id:', todo);
           expect(res.body.todos[0].text).toBe(todo.text);
-        }).catch((e) => { console.log('Invalid ID:', id); done();});
+        }).catch((e) => { console.log('Invalid ID:', id); done(); });
       })
       .end((err, res) => {
         if (err) {
@@ -139,3 +139,66 @@ describe('GET /todos/1234567890', () => {
       });
   });
 });
+
+
+
+////////////////////////////////Delete///////////////////////////////////////
+describe('DELETE /todos/:id', () => {
+  it('should return a valid deleted row', (done) => {
+    var id = todos[1]._id.toHexString();
+    request(app)
+      .delete(`/todos/${id}`)
+      .expect(200)
+      .expect((res) => {
+        console.log('Line 153:', res.body);
+        expect(res.body.todos._id).toBe(id);
+      })
+      .end((err, res) => {
+        if (err) {
+          return done(err);
+        }
+        // Make usre data is not in the DB
+        Todo.findById(id).then((todo) => {
+          expect(todo).toNotExist();
+          done();
+        }).catch((e) => { console.log('Unknown Error:', e); done(); });
+      });
+  });
+});
+
+
+describe('Delete /todos/with a valid id, but not found in database', () => {
+  it('should return 404 because there is no data for this id', (done) => {
+    var id = new ObjectID().toHexString();
+    request(app)
+      .delete(`/todos/${id}`)
+      .expect(404)
+      .end((err, res) => {
+        if (err) {
+          return done(err);
+        }
+        done();
+      });
+  });
+});
+
+
+
+describe('DELETE /todos/invalid hex', () => {
+  it('should return 404 because there is no data for this id', (done) => {
+    var id = '1234567890';
+    request(app)
+      .delete(`/todos/${id}`)
+      .expect(404)
+      .end((err, res) => {
+        if (err) {
+          return done(err);
+        }
+        done();
+      });
+  });
+});
+
+
+
+
