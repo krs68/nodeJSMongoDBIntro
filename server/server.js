@@ -90,7 +90,7 @@ app.patch('/todos/:id', (req, resp) => {
         body.completedAt = null;
         body.completed = false;
     }
-
+    
     Todo.findByIdAndUpdate(id, {$set: body}, {new: true}).then((todo) => {
         if(!todo) {
             return resp.status(400).send(); 

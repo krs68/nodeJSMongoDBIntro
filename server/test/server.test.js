@@ -6,7 +6,7 @@ const { Todo } = require('./../models/todo');
 
 const todos = [
   { _id: new ObjectID(), text: "First test todo" },
-  { _id: new ObjectID(), text: "Second test todo" },
+  { _id: new ObjectID(), text: "Second test todo", completed: true, completedAt: 333333 },
   { _id: new ObjectID(), text: "Third test todo" },
   { _id: new ObjectID(), text: "Fourth test todo" },
   { _id: new ObjectID(), text: "Fifth test todo" },
@@ -200,5 +200,80 @@ describe('DELETE /todos/invalid hex', () => {
 });
 
 
+////////////////////////////////Update///////////////////////////////////////
+describe('PATCH /todos/:id', () => {
+  it('should update the todo', (done) => {
+    // grab id for the first item
+    // update text, set completed to true and set completedAt to time stamp
+    // assersions:
+    // make sure you get status of 200
+    // response body text should equal to what you sent, completed is true and completedAt is a number
+    // check DB for text, completed = true and completedAt is a number (.toBeANumber in expect)
+    var id = todos[0]._id.toHexString();
+    var body = { text: "Updated by Test Script", completed: true, completedAt: new Date().getTime() };
+    request(app)
+      .patch(`/todos/${id}`)
+      .send(body)
+      .expect(200)
+      .expect((resp) => {
+        console.log('Return Message:', resp.body.todo);
+        expect(resp.body.todo.completed).toBe(true);
+        Todo.findById(id).then((todo) => {
+          if (!todo) {
+            return console.log('ERROR 3: Invalid ID');
+          }
+          console.log('Todo By Id:', todo);
+          expect(resp.body.todo.text).toBe(todo.text);
+          expect(resp.body.todo.completed).toBe(todo.completed);
+          console.log('What is completedAt:', todo.completedAt);
+          expect(todo.completedAt).toBeA('number');
+        }).catch((e) => { return console.log('Errored out in catch block:', e); });
+      })
+      .end((err, res) => {
+        if (err) {
+          return done(err);
+        }
+        console.log('Make sure this comes till here...');
+        done();
+      });
+  });
 
-
+  it('should clear completedAt when todo  is not completed', (done) => {
+    // grab id of the second item
+    // Update text and set completed to false
+    // assersions:
+    // make sure you get status of 200
+    // response body has the changes you made
+    // i.e., text is changed, completed is false, completedAt is null (.toNotExists in expect)
+    var id = todos[1]._id.toHexString();
+    var body = { completed: false, completedAt: null };
+    request(app)
+      .patch(`/todos/${id}`)
+      .send(body)
+      .expect(200)
+      .expect((resp) => {
+        console.log('Return Message:', resp.body.todo);
+        expect(resp.body.todo.completed).toBe(false);
+        expect(resp.body.todo.completedAt).toBeNull;
+        Todo.findById(id).then((todo) => {
+          if (!todo) {
+            return console.log('ERROR 3: Invalid ID');
+          }
+          console.log('Todo By Id:', todo);
+          expect(resp.body.todo.text).toBe(todo.text);
+          expect(resp.body.todo.completed).toBe(todo.completed);
+          console.log('What is completedAt:', todo.completedAt);
+          expect(todo.completedAt).toBeNull;
+        }).catch((e) => { console.log('Errored out in catch block:', e); });
+      })
+      .end((err, res) => {
+        if (err) {
+          return done(err);
+        }
+        console.log('Make sure this comes till here...');
+        done();
+      });
+  });
+});
+  
+  
