@@ -103,6 +103,21 @@ app.patch('/todos/:id', (req, resp) => {
     });
 });
 
+app.post('/users', (req, resp) => {
+    // console.log(req.body);
+    var body = lodash.pick(req.body, ['email', 'password']);
+    var user = new User(body);
+
+    user.save().then(() => {
+        return user.generateAuthToken();
+    }).then((token) => {
+        resp.header('x-auth', token).send(user);
+    }).catch((e) => {
+        // console.log('Error:', JSON.stringify(e, undefined, 2));
+        resp.status(400).send(e);
+    });
+});
+
 
 app.listen(port, () => {
     console.log(`Started Listner on port ${port}...`);
