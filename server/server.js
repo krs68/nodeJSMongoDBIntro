@@ -19,8 +19,6 @@ app.get('/', (req, resp) => {
     resp.status(200).send('<h1>Hello World</h1>');
 });
 
-
-
 app.post('/todos', (req, resp) => {
     // console.log(req.body);
     var todo = new Todo({
