@@ -6,7 +6,7 @@
   "scripts": {
     "start": "node server/server.js",
     "_comment": "test export NODE_ENV=test || set \"NODE_ENV=test\" && mocha server/**/*.test.js",
-    "test": "set \"NODE_ENV=test\" && mocha server/**/*.test.js",
+    "test": "set \"NODE_ENV=test\" && mocha --timeout 9000 server/**/*.test.js",
     "test-watch": "nodemon --exec 'npm test'"
   },
   "engines": {
