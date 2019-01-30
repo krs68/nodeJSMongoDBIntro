@@ -1,279 +1,172 @@
 const expect = require('expect');
 const request = require('supertest');
-const { ObjectID } = require('mongodb');
-const { app } = require('./../server');
-const { Todo } = require('./../models/todo');
+const {ObjectID} = require('mongodb');
 
-const todos = [
-  { _id: new ObjectID(), text: "First test todo" },
-  { _id: new ObjectID(), text: "Second test todo", completed: true, completedAt: 333333 },
-  { _id: new ObjectID(), text: "Third test todo" },
-  { _id: new ObjectID(), text: "Fourth test todo" },
-  { _id: new ObjectID(), text: "Fifth test todo" },
-  { _id: new ObjectID(), text: "Sixth test todo" },
-  { _id: new ObjectID(), text: "Seventh test todo" }
-];
+const {app} = require('./../server');
+const {Todo} = require('./../models/todo');
+const {todos, populateTodos, users, populateUsers} = require('./seed/seed');
 
-beforeEach((done) => {
-  Todo.remove({}).then(() => {
-    return Todo.insertMany(todos);
-  }).then(() => done());
-});
+// Load Seed Data
+beforeEach(populateUsers);
+beforeEach(populateTodos);
 
 describe('POST /todos', () => {
-  it('should create a new todo', (done) => {
+  it('should create a new todo', () => {
     var text = 'Test todo text';
 
     request(app)
       .post('/todos')
-      .send({ text })
+      .send({text})
       .expect(200)
       .expect((res) => {
         expect(res.body.text).toBe(text);
       })
       .end((err, res) => {
         if (err) {
-          return done(err);
+          return (err);
         }
 
-        Todo.find({ text }).then((todos) => {
+        Todo.find({text}).then((todos) => {
           expect(todos.length).toBe(1);
           expect(todos[0].text).toBe(text);
-          done();
-        }).catch((e) => done(e));
+          // done();
+        }).catch((e) => {});
       });
   });
 
-  it('should not create todo with invalid body data', (done) => {
+  it('should not create todo with invalid body data', () => {
     request(app)
       .post('/todos')
       .send({})
       .expect(400)
       .end((err, res) => {
         if (err) {
-          return done(err);
+          return (err);
         }
 
         Todo.find().then((todos) => {
-          expect(todos.length).toBe(7);
-          done();
-        }).catch((e) => done(e));
+          expect(todos.length).toBe(2);
+          // done();
+        }).catch((e) => {});
       });
   });
 });
 
-
 describe('GET /todos', () => {
-  it('should get all todos', (done) => {
+  it('should get all todos', () => {
     request(app)
       .get('/todos')
       .expect(200)
-      .expect((resp) => {
-        // console.log('resp object is:', resp.body);
-        expect(resp.body.todo.length).toBe(7);
+      .expect((res) => {
+        expect(res.body.todos.length).toBe(2);
       })
-      .end(done);
+      .end();
   });
 });
 
-
-describe('GET /todos/with a valid id', () => {
-  it('should return a valid row', (done) => {
-    var id = todos[0]._id.toHexString();
+describe('GET /todos/:id', () => {
+  it('should return todo doc', () => {
     request(app)
-      .get(`/todos/${id}`)
+      .get(`/todos/${todos[0]._id.toHexString()}`)
       .expect(200)
       .expect((res) => {
-        // expect(res.body.text).toBe(text);
-        console.log('Return Message:', res.body.todos[0].text);
-        var returnText = res.body.todos[0].text;
-        Todo.findById({ _id: id }).then((todo) => {
-          if (!todo) {
-            return console.log('ERROR 3: Invalid ID');
-          }
-          console.log('Todo By Id:', todo);
-          expect(res.body.todos[0].text).toBe(todo.text);
-        }).catch((e) => { console.log('Invalid ID:', id); done(); });
+        expect(res.body.todo.text).toBe(todos[0].text);
       })
-      .end((err, res) => {
-        if (err) {
-          return done(err);
-        }
-        console.log('Make sure this comes till here...');
-        done();
-      });
+      .end();
   });
-});
 
+  it('should return 404 if todo not found', () => {
+    var hexId = new ObjectID().toHexString();
 
-
-
-describe('GET /todos/with a valid id, but not found in database', () => {
-  it('should return 404 because there is no data for this id', (done) => {
-    var id = new ObjectID().toHexString();
     request(app)
-      .get(`/todos/${id}`)
+      .get(`/todos/${hexId}`)
       .expect(404)
-      .end((err, res) => {
-        if (err) {
-          return done(err);
-        }
-        done();
-      });
+      .end();
   });
-});
 
-
-
-describe('GET /todos/1234567890', () => {
-  it('should return 404 because there is no data for this id', (done) => {
-    var id = '1234567890';
+  it('should return 404 for non-object ids', () => {
     request(app)
-      .get(`/todos/${id}`)
+      .get('/todos/123abc')
       .expect(404)
-      .end((err, res) => {
-        if (err) {
-          return done(err);
-        }
-        done();
-      });
+      .catch((e) => {})
   });
 });
 
-
-
-////////////////////////////////Delete///////////////////////////////////////
 describe('DELETE /todos/:id', () => {
-  it('should return a valid deleted row', (done) => {
-    var id = todos[1]._id.toHexString();
+  it('should remove a todo', () => {
+    var hexId = todos[1]._id.toHexString();
+
     request(app)
-      .delete(`/todos/${id}`)
+      .delete(`/todos/${hexId}`)
       .expect(200)
       .expect((res) => {
-        console.log('Line 153:', res.body);
-        expect(res.body.todos._id).toBe(id);
+        expect(res.body.todo._id).toBe(hexId);
       })
       .end((err, res) => {
         if (err) {
-          return done(err);
+          return (err);
         }
-        // Make usre data is not in the DB
-        Todo.findById(id).then((todo) => {
+
+        Todo.findById(hexId).then((todo) => {
           expect(todo).toNotExist();
-          done();
-        }).catch((e) => { console.log('Unknown Error:', e); done(); });
+          // done();
+        }).catch((e) => {});
       });
   });
-});
 
+  it('should return 404 if todo not found', () => {
+    var hexId = new ObjectID().toHexString();
 
-describe('Delete /todos/with a valid id, but not found in database', () => {
-  it('should return 404 because there is no data for this id', (done) => {
-    var id = new ObjectID().toHexString();
     request(app)
-      .delete(`/todos/${id}`)
+      .delete(`/todos/${hexId}`)
       .expect(404)
-      .end((err, res) => {
-        if (err) {
-          return done(err);
-        }
-        done();
-      });
+      .end();
   });
-});
 
-
-
-describe('DELETE /todos/invalid hex', () => {
-  it('should return 404 because there is no data for this id', (done) => {
-    var id = '1234567890';
+  it('should return 404 if object id is invalid', () => {
     request(app)
-      .delete(`/todos/${id}`)
+      .delete('/todos/123abc')
       .expect(404)
-      .end((err, res) => {
-        if (err) {
-          return done(err);
-        }
-        done();
-      });
+      .catch((e) => {})
   });
 });
 
-
-////////////////////////////////Update///////////////////////////////////////
 describe('PATCH /todos/:id', () => {
-  it('should update the todo', (done) => {
-    // grab id for the first item
-    // update text, set completed to true and set completedAt to time stamp
-    // assersions:
-    // make sure you get status of 200
-    // response body text should equal to what you sent, completed is true and completedAt is a number
-    // check DB for text, completed = true and completedAt is a number (.toBeANumber in expect)
-    var id = todos[0]._id.toHexString();
-    var body = { text: "Updated by Test Script", completed: true, completedAt: new Date().getTime() };
+  it('should update the todo', () => {
+    var hexId = todos[0]._id.toHexString();
+    var text = 'This should be the new text';
+
     request(app)
-      .patch(`/todos/${id}`)
-      .send(body)
-      .expect(200)
-      .expect((resp) => {
-        console.log('Return Message:', resp.body.todo);
-        expect(resp.body.todo.completed).toBe(true);
-        Todo.findById(id).then((todo) => {
-          if (!todo) {
-            return console.log('ERROR 3: Invalid ID');
-          }
-          console.log('Todo By Id:', todo);
-          expect(resp.body.todo.text).toBe(todo.text);
-          expect(resp.body.todo.completed).toBe(todo.completed);
-          console.log('What is completedAt:', todo.completedAt);
-          expect(todo.completedAt).toBeA('number');
-        }).catch((e) => { return console.log('Errored out in catch block:', e); });
+      .patch(`/todos/${hexId}`)
+      .send({
+        completed: true,
+        text
       })
-      .end((err, res) => {
-        if (err) {
-          return done(err);
-        }
-        console.log('Make sure this comes till here...');
-        done();
-      });
+      .expect(200)
+      .expect((res) => {
+        expect(res.body.todo.text).toBe(text);
+        expect(res.body.todo.completed).toBe(true);
+        expect(res.body.todo.completedAt).toBeA('number');
+      })
+      .end();
   });
 
-  it('should clear completedAt when todo  is not completed', (done) => {
-    // grab id of the second item
-    // Update text and set completed to false
-    // assersions:
-    // make sure you get status of 200
-    // response body has the changes you made
-    // i.e., text is changed, completed is false, completedAt is null (.toNotExists in expect)
-    var id = todos[1]._id.toHexString();
-    var body = { completed: false, completedAt: null };
+  it('should clear completedAt when todo is not completed', () => {
+    var hexId = todos[1]._id.toHexString();
+    var text = 'This should be the new text!!';
+
     request(app)
-      .patch(`/todos/${id}`)
-      .send(body)
-      .expect(200)
-      .expect((resp) => {
-        console.log('Return Message:', resp.body.todo);
-        expect(resp.body.todo.completed).toBe(false);
-        expect(resp.body.todo.completedAt).toBeNull;
-        Todo.findById(id).then((todo) => {
-          if (!todo) {
-            return console.log('ERROR 3: Invalid ID');
-          }
-          console.log('Todo By Id:', todo);
-          expect(resp.body.todo.text).toBe(todo.text);
-          expect(resp.body.todo.completed).toBe(todo.completed);
-          console.log('What is completedAt:', todo.completedAt);
-          expect(todo.completedAt).toBeNull;
-        }).catch((e) => { console.log('Errored out in catch block:', e); });
+      .patch(`/todos/${hexId}`)
+      .send({
+        completed: false,
+        text
       })
-      .end((err, res) => {
-        if (err) {
-          return done(err);
-        }
-        console.log('Make sure this comes till here...');
-        done();
-      });
+      .expect(200)
+      .expect((res) => {
+        expect(res.body.todo.text).toBe(text);
+        expect(res.body.todo.completed).toBe(false);
+        expect(res.body.todo.completedAt).toNotExist();
+      })
+      .end();
   });
 });
-  
-  
