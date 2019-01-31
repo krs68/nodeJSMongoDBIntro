@@ -170,7 +170,7 @@ app.post('/users/login', (req, res) => {
       res.header('x-auth', token).send(user);
     });
   }).catch((e) => {
-    res.status(400).send({ ERROR: 'Not able to login, invalid Username or Password'});
+    return res.status(400).send({ ERROR: 'Not able to login, invalid Username or Password'});
   });
 });
 
