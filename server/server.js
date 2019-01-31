@@ -121,50 +121,8 @@ app.listen(port, () => {
   console.log(`Started up at port ${port}`);
 });
 
-// // Your version -- this did not work -- commenting it out
-// // for reference only -- delete later
-// app.post('/users/login', (req, res) => {
-//   var body = _.pick(req.body, ['email', 'password']);
-//   var email = body.email;
-//   var token = body.token;
-//   console.log('Body', body);
-//   console.log('Body.emil', body.email);
-//   console.log('Body.password', body.password);
-//   console.log('email', req.body.email);
-//   console.log('password', req.body.password);
-//   // validate email and password
-//   // 1. Get email and token from DB
-//   // 2. Make sure email is valid
-//   // 3. Using password and token generate newEncryptedPasswd
-//   // 4. Make sure both encrypted passwords are same
-//   // 5. send back appropriate messages back
-//   //
-//   // 1. Get email and token from DB
-//   User.find(({ email }), (err, result) => {
-//     if (err) {
-//       return res.status(400).send({ ERROR: 'Invalid Username' });
-//     }
-//     console.log('Results back from DB:', result);
-//     console.log('Results back from DB, what is the token:');
-//     console.log(JSON.stringify({result}, undefined, 2));
-//     // Not able to figure out how to get token
-//     // so initialing toekn with actual value
-//     var token1 = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJfaWQiOiI1YzUyZmNlNGM5YWYwYzIxMDQwNzExMzIiLCJhY2Nlc3MiOiJhdXRoIiwiaWF0IjoxNTQ4OTQyNTY0fQ.91SqDPxPnMilNjiwm30Jn-oxjYCeq21aNXQg5yTYPkE';
-//     var access = 'auth';
-//     var id = result._id;
-//     var token2 = jwt.sign({_id: id, access}, 'abc123').toString();
-//     console.log('New token is:', token2);
-//     // token1 and token2 are not the same
-//   });
-
-
-//   res.status(200).send({ body });
-// });
-
-// POST /users/login {email, password}
 app.post('/users/login', (req, res) => {
   var body = _.pick(req.body, ['email', 'password']);
-  // res.send(body);
   User.findByCredentials(body.email, body.password).then((user) => {
     return user.generateAuthToken().then((token) => {
       res.header('x-auth', token).send(user);
@@ -173,8 +131,5 @@ app.post('/users/login', (req, res) => {
     return res.status(400).send({ ERROR: 'Not able to login, invalid Username or Password'});
   });
 });
-
-
-
 
 module.exports = {app};

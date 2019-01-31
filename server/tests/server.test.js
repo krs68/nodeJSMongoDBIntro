@@ -1,11 +1,11 @@
 const expect = require('expect');
 const request = require('supertest');
-const {ObjectID} = require('mongodb');
+const { ObjectID } = require('mongodb');
 
-const {app} = require('./../server');
-const {Todo} = require('./../models/todo');
-const {User} = require('./../models/user');
-const {todos, populateTodos, users, populateUsers} = require('./seed/seed');
+const { app } = require('./../server');
+const { Todo } = require('./../models/todo');
+const { User } = require('./../models/user');
+const { todos, populateTodos, users, populateUsers } = require('./seed/seed');
 
 beforeEach(populateUsers);
 beforeEach(populateTodos);
@@ -16,7 +16,7 @@ describe('POST /todos', () => {
 
     request(app)
       .post('/todos')
-      .send({text})
+      .send({ text })
       .expect(200)
       .expect((res) => {
         expect(res.body.text).toBe(text);
@@ -26,7 +26,7 @@ describe('POST /todos', () => {
           return done(err);
         }
 
-        Todo.find({text}).then((todos) => {
+        Todo.find({ text }).then((todos) => {
           expect(todos.length).toBe(1);
           expect(todos[0].text).toBe(text);
           done();
@@ -202,7 +202,7 @@ describe('POST /users', () => {
 
     request(app)
       .post('/users')
-      .send({email, password})
+      .send({ email, password })
       .expect(200)
       .expect((res) => {
         expect(res.headers['x-auth']).toExist();
@@ -214,11 +214,11 @@ describe('POST /users', () => {
           return done(err);
         }
 
-        User.findOne({email}).then((user) => {
+        User.findOne({ email }).then((user) => {
           expect(user).toExist();
           expect(user.password).toNotBe(password);
           done();
-        });
+        }).catch((err) => done(err));
       });
   });
 
@@ -243,4 +243,51 @@ describe('POST /users', () => {
       .expect(400)
       .end(done);
   });
+});
+
+
+describe('POST users/login', () => {
+  it('should login user and return auth token', (done) => {
+    request(app)
+      .post('/users/login')
+      .send({ email: users[1].email, password: users[1].password })
+      .expect(200)
+      .expect((res) => {
+        expect(res.headers['x-auth']).toExist();
+        expect(res.body._id).toExist();
+        expect(res.body.email).toBe(users[1].email);
+      })
+      .end((err, res) => {
+        if (err) {
+          return done(err);
+        }
+        User.findById(users[1]._id).then((user) => {
+          expect(user.tokens[0]).toInclude({
+            access: 'auth',
+            token: res.headers['x-auth']
+          });
+          done();
+        }).catch((err) => done(err));
+      });
+  });
+
+  it('should reject login', (done) => {
+    request(app)
+      .post('/users/login')
+      .send({ email: users[1].email, password: users[0].password })
+      .expect(400)
+      .expect((res) => {
+        expect(res.headers['x-auth']).toNotExist();
+      })
+      .end((err, res) => {
+        if (err) {
+          return done(err);
+        }
+        User.findById(users[1]._id).then((user) => {
+          expect(user.tokens.length).toBe(0);
+          done();
+        }).catch((err) => done(err));
+      });
+  });
+
 });
